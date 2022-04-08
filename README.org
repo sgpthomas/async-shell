@@ -1,0 +1,5 @@
+#+title: Run Org babel shell commands with async-shell-command
+
+Frequently I want to keep track of the commands that I'm running in an org buffer. But the command takes a long time, and so I don't want Emacs to block until the command finishes. I also want to keep an eye on the output. In normal elisp, =(async-shell-command)= is perfect for this.
+
+This package is a very simple plugin that let's you run commands from org-babel in =(async-shell-command)=.
