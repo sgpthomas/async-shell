@@ -3,7 +3,7 @@
 (defun org-babel-execute:async-shell (body params)
   (let* ((processed-params (org-babel-process-params params))
 	 (default-directory (cdr (assq :dir processed-params))))
-    (with-current-buffer "*ob-async-shell*"
+    (with-current-buffer (get-buffer-create "*ob-async-shell*")
       (erase-buffer)
       (insert "=== Command ===\n")
       (insert body)
