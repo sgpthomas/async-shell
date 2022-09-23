@@ -4,14 +4,14 @@
   (let* ((processed-params (org-babel-process-params params))
 	 (default-directory (cdr (assq :dir processed-params))))
     (with-current-buffer (get-buffer-create "*ob-async-shell*")
+      (special-mode)
+
       ;; save the command as a buffer local variable
       (setq-local ob-async-shell-command body)
 
       ;; set the revert buffer function
       (setq-local revert-buffer-function
-		  'ob-async-shell-rerun)
-
-      (shell-mode))
+		  'ob-async-shell-rerun))
 
     (ob-async-shell-run body)))
 
@@ -22,7 +22,7 @@
     (erase-buffer)
     ;; (shell-mode)
     (insert "=== Command ===\n")
-    (insert command )
+    (insert command)
 
     ;; run the command using `start-file-process'
     ;; so that it respects `default-directory'.
