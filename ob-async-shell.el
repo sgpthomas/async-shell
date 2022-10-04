@@ -17,7 +17,10 @@
 
 (defun ob-async-shell-run (command)
   (with-current-buffer "*ob-async-shell*"
+    (ob-async-shell-cleanup-process)
+
     (setq-local buffer-read-only 'nil)
+
     ;; clear buffer and then insert command body
     (erase-buffer)
     ;; (shell-mode)
@@ -31,8 +34,20 @@
 
     (setq-local buffer-read-only t)))
 
+(defun ob-async-shell-cleanup-process ()
+  (let* ((process (get-buffer-process "*ob-async-shell*"))
+	 (alive? (process-live-p process)))
+    (when alive?
+      (if (y-or-n-p "There is a process alive. Really kill? ")
+	  (kill-process process)
+	(error "Can't run this command. A process is still alive.")))))
+
 (defun ob-async-shell-rerun (&optional ignore-auto no-confirm)
   (with-current-buffer "*ob-async-shell*"
+
+    (ob-async-shell-cleanup-process)
+
+    ;; only do thing when the shell command is defined
     (when ob-async-shell-command
       (ob-async-shell-run ob-async-shell-command))))
 
