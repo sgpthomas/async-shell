@@ -1,3 +1,5 @@
+(require 'ansi-color)
+
 (provide 'ob-async-shell)
 
 (defun org-babel-execute:async-shell (body params)
@@ -13,10 +15,10 @@
     (ob-async-shell-run body)))
 
 (defun ob-async-shell-run (command)
-  (compilation-start command t (lambda (_) "*ob-async-shell*")))
+  (compilation-start command 'async-shell-process-mode (lambda (_) "*ob-async-shell*")))
 
 (defun ob-async-filter ()
-  (message "Hi"))
+  (ansi-color-apply-on-region compilation-filter-start (point)))
 
 ;;;###autoload
 (define-derived-mode async-shell-mode shell-script-mode "Async Shell Mode"
