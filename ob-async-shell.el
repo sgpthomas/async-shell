@@ -18,7 +18,7 @@
     (setq ob-async-shell-use-ansi use-ansi-color)
 
     (if use-ansi-color
-	(ob-async-shell-run (concat "export TERM=\"\"\n" body))
+	(ob-async-shell-run (concat "export TERM=\"xterm-256color\"\n" body))
       (ob-async-shell-run body))))
 
 (defun ob-async-shell-run (command)
@@ -34,5 +34,10 @@
 
 (define-derived-mode async-shell-process-mode compilation-mode "Async Shell"
   "Major mode for the Async Shell process buffer."
+  (font-lock-mode -1)
   (setq-local truncate-lines t)
+  (setq-local ansi-color-apply-face-function
+	      (lambda (beg end face)
+		(when face
+		  (put-text-property beg end 'face face))))
   (add-hook 'compilation-filter-hook #'ob-async-filter))
