@@ -1,14 +1,20 @@
 (require 'ansi-color)
+(require 'dash)
 
 (provide 'ob-async-shell)
 
-(defvar ob-async-shell-use-ansi 'nil
+(defvar ob-async-shell-use-ansi t
   "Should ob async use ansi escape codes?")
 
 (defun org-babel-execute:async-shell (body params)
   (let* ((processed-params (org-babel-process-params params))
 	 (default-dir (cdr (assq :dir processed-params)))
-	 (use-ansi-color (cdr (assq :ansi processed-params))))
+	 (use-ansi-color (cdr (assq :ansi processed-params)))
+         (vars (--> processed-params
+                    (--filter (equal (car it) :var) it)
+                    (--map (format "%s=\"%s\"" (cadr it) (cddr it)) it)
+                    (s-join "\n" it)))
+         (body (s-concat "#### begin body ####\n" vars "\n" body "\n#### end body ####\n")))
 
     (with-current-buffer (get-buffer-create "*ob-async-shell*")
       ;; save the command as a buffer local variable
