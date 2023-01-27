@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 (require 'ansi-color)
 (require 'dash)
 
@@ -14,21 +16,29 @@
                     (--filter (equal (car it) :var) it)
                     (--map (format "%s=\"%s\"" (cadr it) (cddr it)) it)
                     (s-join "\n" it)))
-         (body (s-concat "#### begin body ####\n" vars "\n" body "\n#### end body ####\n")))
+         (name (cdr (assq :name processed-params)))
+         (buffer-string (format "*ob-async-shell:%s*" name))
+         (body (s-concat "#### begin body ####\n"
+                         vars "\n"
+                         body "\n"
+                         "#### end body ####\n")))
 
-    (with-current-buffer (get-buffer-create "*ob-async-shell*")
+    (with-current-buffer (get-buffer-create buffer-string)
       ;; save the command as a buffer local variable
       (setq-local ob-async-shell-command body)
+      (setq-local ob-async-shell-name name)
       (setq-local default-directory default-dir))
 
     (setq ob-async-shell-use-ansi use-ansi-color)
 
+    (defun ob-async-shell-run (command)
+      (compilation-start command
+                         'async-shell-process-mode
+                         (lambda (_) buffer-string)))
+
     (if use-ansi-color
 	(ob-async-shell-run (concat "export TERM=\"xterm-256color\"\n" body))
       (ob-async-shell-run body))))
-
-(defun ob-async-shell-run (command)
-  (compilation-start command 'async-shell-process-mode (lambda (_) "*ob-async-shell*")))
 
 (defun ob-async-filter ()
   (when ob-async-shell-use-ansi
