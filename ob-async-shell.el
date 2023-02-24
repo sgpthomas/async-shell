@@ -16,6 +16,9 @@
                     (--filter (equal (car it) :var) it)
                     (--map (format "%s=\"%s\"" (cadr it) (cddr it)) it)
                     (s-join "\n" it)))
+         (vars (if use-ansi-color
+                   (concat "export TERM=\"xterm-256color\"\n" vars)
+                 vars))
          (name (cdr (assq :name processed-params)))
          (buffer-string (format "*ob-async-shell:%s*" name))
          (body (s-concat "#### begin body ####\n"
@@ -36,9 +39,7 @@
                          'async-shell-process-mode
                          (lambda (_) buffer-string)))
 
-    (if use-ansi-color
-	(ob-async-shell-run (concat "export TERM=\"xterm-256color\"\n" body))
-      (ob-async-shell-run body))))
+    (ob-async-shell-run body)))
 
 (defun ob-async-filter ()
   (when ob-async-shell-use-ansi
