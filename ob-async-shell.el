@@ -9,6 +9,9 @@
 (defvar ob-async-shell-use-ansi t
   "Should ob async use ansi escape codes?")
 
+(defvar ob-async-save-hooks '()
+  "List of save hooks registered.")
+
 (defun async-shell-launch (command &optional default-dir no-ansi-color vars name)
   (interactive "MCommand: ")
   (let* ((buffer-name (if name (format "*ob-async-shell:%s*" name)
@@ -55,9 +58,40 @@
   (when ob-async-shell-use-ansi
     (ansi-color-apply-on-region compilation-filter-start (point))))
 
+(defun ob-async-update-buffer-fn (name)
+  (lambda ()
+    (with-current-buffer (get-buffer name)
+      (recompile))))
+
+(defun ob-async-apply-save-hook ()
+  (when ob-async-save-hooks
+    (--each ob-async-save-hooks (funcall (cdr it)))))
+
+(defun ob-async-register ()
+  (interactive)
+
+  (let ((buffer (read-buffer "Buffer: " nil t
+                             (lambda (b)
+                               (and (s-contains? "*ob-async-shell:" (car b))
+                                    (equal (buffer-local-value 'major-mode (cdr b))
+                                           #'async-shell-process-mode)
+                                    (not (assoc (car b) ob-async-save-hooks)))))))
+    (add-to-list 'ob-async-save-hooks `(,buffer . ,(ob-async-update-buffer-fn buffer)))))
+
+(defun ob-async-unregister ()
+  (interactive)
+
+  (let ((options (--map (car it) ob-async-save-hooks)))
+    (when options
+      (setq ob-async-save-hooks
+            (assoc-delete-all (completing-read "Buffers: " options nil t)
+                              ob-async-save-hooks)))))
+
 ;;;###autoload
 (define-derived-mode async-shell-mode shell-script-mode "Async Shell Mode"
-  "Major Mode for highlighting text in async-shell org babel blocks.")
+  "Major Mode for highlighting text in async-shell org babel blocks."
+
+  )
 
 (define-derived-mode async-shell-process-mode compilation-mode "Async Shell"
   "Major mode for the Async Shell process buffer."
@@ -67,4 +101,5 @@
 	      (lambda (beg end face)
 		(when face
 		  (put-text-property beg end 'face face))))
-  (add-hook 'compilation-filter-hook #'ob-async-filter))
+  (add-hook 'compilation-filter-hook #'ob-async-filter)
+  (add-hook 'after-save-hook #'ob-async-apply-save-hook))
