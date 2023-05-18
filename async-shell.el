@@ -1,10 +1,17 @@
-;; -*- lexical-binding: t -*-
+;;; async-shell.el --- A tool for managing asynchronous shell commands. -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2023 Samuel Thomas
+
+;; Author: Samuel Thomas <sgt@cs.utexas.edu>
+;; Package-Requires: (dash s transient)
+
+;;; External packages:
 (require 'ansi-color)
-(require 's)
 (require 'dash)
+(require 's)
 (require 'transient)
 
+;;; Code:
 (defvar-local async-shell-use-ansi t
   "Should ob async use ansi escape codes?")
 
@@ -218,13 +225,15 @@
   (setq-local truncate-lines t)
   (add-hook 'after-save-hook #'async-shell-apply-save-hook))
 
-(defun async-shell-launch (command &optional default-dir no-ansi-color vars name)
+(defun async-shell-launch (command &optional default-dir no-ansi-color vars name dont-show-buffer)
   (interactive "MCommand: ")
   (let* ((buffer-name (if name (format "*async-shell:%s*" name)
                         (format "*async-shell:%s*" (car (s-split-up-to " " command 1)))))
          (default-dir (if default-dir default-dir default-directory))
-         (body (s-concat (if vars (format "%s\n" vars) "")
+         (body (s-concat (if (not (s-equals? vars "")) (format "#vars\n%s\n" vars) "")
                          command))
+         ;; record if this is a new buffer
+         (new (not (get-buffer buffer-name)))
          (shell-buf (get-buffer-create buffer-name)))
 
     (with-current-buffer shell-buf
@@ -236,21 +245,9 @@
                   revert-buffer-function (lambda (&optional _ignore-auto _no-confirm)
                                            (async-shell-start-process shell-buf))))
     (async-shell-start-process shell-buf)
-    (switch-to-buffer shell-buf)))
-
-(defun org-babel-execute:async-shell (body params)
-  (let* ((processed-params (org-babel-process-params params))
-	 (default-dir (cdr (assq :dir processed-params)))
-	 (use-ansi-color (cdr (assq :ansi processed-params)))
-         (no-ansi-color (if (null use-ansi-color) 'nil
-                          (s-equals? use-ansi-color "nil")))
-         (vars (--> processed-params
-                    (--filter (equal (car it) :var) it)
-                    (--map (format "%s=\"%s\"" (cadr it) (cddr it)) it)
-                    (s-join "\n" it)))
-         (name (cdr (assq :name processed-params)))
-         (name (if name name "none")))
-
-    (async-shell-launch body default-dir no-ansi-color vars name)))
+    (when (or new (not dont-show-buffer))
+      (switch-to-buffer-other-window shell-buf))))
 
 (provide 'async-shell)
+
+;;; async-shell.el ends here
