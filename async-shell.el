@@ -230,7 +230,7 @@
   (let* ((buffer-name (if name (format "*async-shell:%s*" name)
                         (format "*async-shell:%s*" (car (s-split-up-to " " command 1)))))
          (default-dir (if default-dir default-dir default-directory))
-         (body (s-concat (if (not (s-equals? vars "")) (format "#vars\n%s\n" vars) "")
+         (body (s-concat (if (not (s-equals? vars "")) (format "%s\n" vars) "")
                          command))
          ;; record if this is a new buffer
          (new (not (get-buffer buffer-name)))
