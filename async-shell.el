@@ -27,6 +27,10 @@
 (defvar-local async-shell-changes nil
   "Tracks any changes made from a transient menu.")
 
+(defvar-local async-shell-pin-lineno nil
+  "Keeps track of a line number that can optionally be pinned so that when output is
+updated, it maintains this location.")
+
 (defun make-insert-progn (input)
   "Converts `input' into a sequence of insert statements and cursor move commands."
 
@@ -43,15 +47,28 @@
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (setq-local buffer-read-only 'nil)
-      (let ((moving (= (point) (process-mark proc)))
-            (ansi-str (ansi-color-apply string))
-            )
+      (let ((ansi-str (ansi-color-apply string))
+            (proc-point-line (line-number-at-pos (process-mark proc))))
         (save-excursion
           ;; Insert the text, advancing the process marker.
           (goto-char (process-mark proc))
           (eval (make-insert-progn ansi-str))
           (set-marker (process-mark proc) (point)))
-        (if moving (goto-char (process-mark proc))))
+
+        ;; update the buffer point
+        (if (and async-shell-pin-lineno (<= async-shell-pin-lineno proc-point-line)
+                 ;; (not (eq (line-number-at-pos) async-shell-pin-lineno))
+                 )
+            (goto-line async-shell-pin-lineno)
+          (goto-char (process-mark proc)))
+
+        ;; the window point can be separate from the buffer point.
+        ;; update that point to the buffer point
+        (--each (get-buffer-window-list (process-buffer proc) nil t)
+          (set-window-point it (point))
+          (when async-shell-pin-lineno
+              (set-window-start it (point)))))
+
       (setq-local buffer-read-only t))))
 
 (defun propertize-key-value (key value)
@@ -194,6 +211,23 @@
   (setq async-shell-use-ansi
         (not async-shell-use-ansi)))
 
+(transient-define-suffix async-shell:--pin-lineno ()
+  :transient t
+  :key "p"
+  :description (lambda ()
+                 (format "Pin Line Number (%s)"
+                         (propertize (format "active: %s" async-shell-pin-lineno)
+                                     'face
+                                     (if async-shell-pin-lineno
+                                         'transient-argument
+                                       'transient-inactive-argument))))
+  (interactive)
+  (setq async-shell-changes t)
+  (setq async-shell-pin-lineno
+        (if async-shell-pin-lineno
+            nil
+          (line-number-at-pos))))
+
 (transient-define-suffix async-shell:--apply ()
   :transient nil
   :key "q"
@@ -210,7 +244,9 @@
     ("c" "Command" async-shell-change-command)]
    ["Toggles"
     (async-shell:--register)
-    (async-shell:--ansi-color)]
+    (async-shell:--ansi-color)
+    (async-shell:--pin-lineno)
+    ]
    ["Exit"
     (async-shell:--apply)]])
 
