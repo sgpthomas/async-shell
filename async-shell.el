@@ -172,7 +172,7 @@ updated, it maintains this location.")
 
   (let* ((buf (async-shell-here-or-prompt)))
     (with-current-buffer (get-buffer buf)
-      (let ((new-command (read-string "Command: ")))
+      (let ((new-command (read-string "Command: " async-shell-command)))
         (setq-local async-shell-command new-command)
         (revert-buffer)))))
 
