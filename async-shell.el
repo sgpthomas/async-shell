@@ -138,8 +138,7 @@ updated, it maintains this location.")
              (proc (start-file-process-shell-command
                     async-shell-name buffer command)))
         (set-process-filter proc 'async-shell-filter)
-        (set-process-sentinel proc 'async-shell-sentinel)
-        ))))
+        (set-process-sentinel proc 'async-shell-sentinel)))))
 
 (defun async-shell-update-buffer-fn (name)
   (lambda ()
@@ -268,7 +267,8 @@ updated, it maintains this location.")
   [["Actions"
     ("R" "Rename" async-shell-rename)
     ("c" "Command" async-shell-change-command)
-    ("k" "Kill" async-shell-kill)]
+    ("k" "Kill" async-shell-kill
+     :if (lambda () (process-live-p (get-buffer-process (current-buffer)))))]
    ["Toggles"
     (async-shell:--register)
     (async-shell:--ansi-color)
