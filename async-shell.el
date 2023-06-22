@@ -3,7 +3,7 @@
 ;; Copyright (C) 2023 Samuel Thomas
 
 ;; Author: Samuel Thomas <sgt@cs.utexas.edu>
-;; Package-Requires: (dash s transient)
+;; Package-Requires: (ansi-color dash s transient)
 
 ;;; External packages:
 (require 'ansi-color)
@@ -24,12 +24,21 @@
 (defvar async-shell-save-hooks '()
   "List of save hooks registered.")
 
-(defvar-local async-shell-changes nil
-  "Tracks any changes made from a transient menu.")
-
 (defvar-local async-shell-pin-lineno nil
   "Keeps track of a line number that can optionally be pinned so that when output is
 updated, it maintains this location.")
+
+(defface async-shell-line-run
+  '((t :inherit warning))
+  "Face for Async-shell mode's \"running\" mode line indicator.")
+
+(defface async-shell-line-success
+  '((t :inherit success))
+  "Face for Async-shell mode's \"exit\" mode line indicator.")
+
+(defface async-shell-line-fail
+  '((t :inherit error))
+  "Face for Async-shell mode's \"error\" mode line indicator.")
 
 (defun make-insert-progn (input)
   "Converts `input' into a sequence of insert statements and cursor move commands."
@@ -46,9 +55,9 @@ updated, it maintains this location.")
 (defun async-shell-filter (proc string)
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
-      (setq-local buffer-read-only 'nil)
       (let ((ansi-str (ansi-color-apply string))
-            (proc-point-line (line-number-at-pos (process-mark proc))))
+            (proc-point-line (line-number-at-pos (process-mark proc)))
+            (inhibit-read-only t))
         (save-excursion
           ;; Insert the text, advancing the process marker.
           (goto-char (process-mark proc))
@@ -67,9 +76,25 @@ updated, it maintains this location.")
         (--each (get-buffer-window-list (process-buffer proc) nil t)
           (set-window-point it (point))
           (when async-shell-pin-lineno
-              (set-window-start it (point)))))
+              (set-window-start it (point))))))))
 
-      (setq-local buffer-read-only t))))
+(defun async-shell-sentinel (proc event)
+  (with-current-buffer (process-buffer proc)
+    (let ((inhibit-read-only t))
+      (insert "\n")
+      (insert (propertize (format "Process %s %s" (process-name proc) event)
+                          'face 'font-lock-function-call-face)))
+
+    ;; when the process is dead
+    (let ((alive-p (process-live-p proc))
+          (status (process-exit-status proc)))
+      (when (not alive-p)
+        (setq mode-line-process
+              `((:propertize ,(format ":exit [%s] " status)
+                             face ,(if (> status 0)
+                                       'async-shell-line-fail
+                                     'async-shell-line-success))))
+        (force-mode-line-update)))))
 
 (defun propertize-key-value (key value)
   (concat (propertize key 
@@ -100,6 +125,11 @@ updated, it maintains this location.")
               "\n\n")
       (setq-local buffer-read-only t)
 
+      ;; add message to the modeline
+      (setq mode-line-process
+            '((:propertize ":running " face async-shell-line-run)))
+      (force-mode-line-update)
+
       ;; start process
       (let* ((command (concat (if async-shell-use-ansi
                                   "export TERM=\"xterm-256color\"\n"
@@ -107,7 +137,9 @@ updated, it maintains this location.")
                               async-shell-command))
              (proc (start-file-process-shell-command
                     async-shell-name buffer command)))
-        (set-process-filter proc 'async-shell-filter)))))
+        (set-process-filter proc 'async-shell-filter)
+        (set-process-sentinel proc 'async-shell-sentinel)
+        ))))
 
 (defun async-shell-update-buffer-fn (name)
   (lambda ()
@@ -176,6 +208,13 @@ updated, it maintains this location.")
         (setq-local async-shell-command new-command)
         (revert-buffer)))))
 
+(defun async-shell-kill ()
+  (interactive)
+
+  (let* ((buf (async-shell-here-or-prompt))
+         (proc (get-buffer-process buf)))
+    (kill-process proc)))
+
 ;;;###autoload
 (define-derived-mode async-shell-mode shell-script-mode "Async Shell Mode"
   "Major Mode for highlighting text in async-shell org babel blocks.")
@@ -191,7 +230,6 @@ updated, it maintains this location.")
                                          'transient-argument
                                        'transient-inactive-argument))))
   (interactive)
-  (setq async-shell-changes t)
   (if (assoc (buffer-name) async-shell-save-hooks)
       (async-shell-unregister)
     (async-shell-register)))
@@ -207,7 +245,6 @@ updated, it maintains this location.")
                                          'transient-argument
                                        'transient-inactive-argument))))
   (interactive)
-  (setq async-shell-changes t)
   (setq async-shell-use-ansi
         (not async-shell-use-ansi)))
 
@@ -222,36 +259,28 @@ updated, it maintains this location.")
                                          'transient-argument
                                        'transient-inactive-argument))))
   (interactive)
-  (setq async-shell-changes t)
   (setq async-shell-pin-lineno
         (if async-shell-pin-lineno
             nil
           (line-number-at-pos))))
 
-(transient-define-suffix async-shell:--apply ()
-  :transient nil
-  :key "q"
-  :description "Quit"
-
-  (interactive)
-  (when async-shell-changes
-    (setq async-shell-changes nil)
-    (revert-buffer)))
-
 (transient-define-prefix async-shell-menu ()
   [["Actions"
     ("R" "Rename" async-shell-rename)
-    ("c" "Command" async-shell-change-command)]
+    ("c" "Command" async-shell-change-command)
+    ("k" "Kill" async-shell-kill)]
    ["Toggles"
     (async-shell:--register)
     (async-shell:--ansi-color)
     (async-shell:--pin-lineno)
     ]
    ["Exit"
-    (async-shell:--apply)]])
+    ("RET" "Quit" transient-quit-one)
+    ("q" "Quit" transient-quit-one)]])
 
 (defvar-keymap async-shell-process-mode-map
-  "TAB" #'async-shell-menu
+  :parent special-mode-map
+  "," #'async-shell-menu
   "R" #'async-shell-rename)
 
 (define-derived-mode async-shell-process-mode special-mode "Async Shell"
@@ -259,7 +288,9 @@ updated, it maintains this location.")
 
   (buffer-disable-undo)
   (setq-local truncate-lines t)
-  (add-hook 'after-save-hook #'async-shell-apply-save-hook))
+  (add-hook 'after-save-hook #'async-shell-apply-save-hook)
+  (when (fboundp 'evil-make-overriding-map)
+    (evil-make-overriding-map async-shell-process-mode-map 'normal)))
 
 (defun async-shell-launch (command &optional default-dir no-ansi-color vars name dont-show-buffer)
   (interactive "MCommand: ")
