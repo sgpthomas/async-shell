@@ -65,9 +65,7 @@ updated, it maintains this location.")
           (set-marker (process-mark proc) (point)))
 
         ;; update the buffer point
-        (if (and async-shell-pin-lineno (<= async-shell-pin-lineno proc-point-line)
-                 ;; (not (eq (line-number-at-pos) async-shell-pin-lineno))
-                 )
+        (if (and async-shell-pin-lineno (<= async-shell-pin-lineno proc-point-line))
             (goto-line async-shell-pin-lineno)
           (goto-char (process-mark proc)))
 
@@ -81,9 +79,14 @@ updated, it maintains this location.")
 (defun async-shell-sentinel (proc event)
   (with-current-buffer (process-buffer proc)
     (let ((inhibit-read-only t))
-      (insert "\n")
-      (insert (propertize (format "Process %s %s" (process-name proc) event)
-                          'face 'font-lock-function-call-face)))
+      (save-excursion
+        (goto-char (point-max))
+        (insert "\n")
+        (insert (propertize (format "Process %s %s" (process-name proc) event)
+                            'face 'font-lock-function-call-face)))
+
+      (when (null async-shell-pin-lineno)
+        (goto-char (point-max))))
 
     ;; when the process is dead
     (let ((alive-p (process-live-p proc))
