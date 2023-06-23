@@ -52,6 +52,15 @@ updated, it maintains this location.")
     (push `(insert ,(substring input start end)) result)
     `(progn . ,(nreverse result))))
 
+(defun async-shell-sync-window-point ()
+  "the window point can be separate from the buffer point.
+update that point to the buffer point"
+
+  (--each (get-buffer-window-list (current-buffer) nil t)
+    (set-window-point it (point))
+    (when async-shell-pin-lineno
+      (set-window-start it (point)))))
+
 (defun async-shell-filter (proc string)
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
@@ -69,12 +78,7 @@ updated, it maintains this location.")
             (goto-line async-shell-pin-lineno)
           (goto-char (process-mark proc)))
 
-        ;; the window point can be separate from the buffer point.
-        ;; update that point to the buffer point
-        (--each (get-buffer-window-list (process-buffer proc) nil t)
-          (set-window-point it (point))
-          (when async-shell-pin-lineno
-              (set-window-start it (point))))))))
+        (async-shell-sync-window-point)))))
 
 (defun async-shell-sentinel (proc event)
   (with-current-buffer (process-buffer proc)
@@ -86,7 +90,9 @@ updated, it maintains this location.")
                             'face 'font-lock-function-call-face)))
 
       (when (null async-shell-pin-lineno)
-        (goto-char (point-max))))
+        (goto-char (point-max)))
+
+      (async-shell-sync-window-point))
 
     ;; when the process is dead
     (let ((alive-p (process-live-p proc))
