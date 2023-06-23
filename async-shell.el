@@ -3,7 +3,7 @@
 ;; Copyright (C) 2023 Samuel Thomas
 
 ;; Author: Samuel Thomas <sgt@cs.utexas.edu>
-;; Package-Requires: (ansi-color dash s transient)
+;; Package-Requires: (dash s transient)
 
 ;;; External packages:
 (require 'ansi-color)
