@@ -322,7 +322,11 @@ update that point to the buffer point"
                                            (async-shell-start-process shell-buf))))
     (async-shell-start-process shell-buf)
     (when (or new (not dont-show-buffer))
-      (switch-to-buffer-other-window shell-buf))))
+      (display-buffer shell-buf
+                      '((display-buffer-in-direction)
+                        (direction . right)))
+      ;; (switch-to-buffer-other-window shell-buf)
+      )))
 
 (provide 'async-shell)
 
