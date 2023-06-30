@@ -6,7 +6,7 @@ This package allows running a shell command in a buffer and provides convenience
 
 Launching a command
 
-[[file:pictures/launch-command.gif][Gif showing =async-launch-command=]]
+[[pictures/launch-command.gif]]
 
 Re-running (=revert-buffer=)
 
