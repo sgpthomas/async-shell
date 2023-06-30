@@ -272,6 +272,20 @@ update that point to the buffer point"
             nil
           (line-number-at-pos))))
 
+(transient-define-suffix async-shell:--edit ()
+  :transient t
+  :key "e"
+  :description (lambda ()
+                 (format "Editable (%s)"
+                         (propertize "active"
+                                     'face
+                                     (if (not buffer-read-only)
+                                         'transient-argument
+                                       'transient-inactive-argument))))
+  (interactive)
+  (setq buffer-read-only
+        (not buffer-read-only)))
+
 (transient-define-prefix async-shell-menu ()
   [["Actions"
     ("R" "Rename" async-shell-rename)
@@ -282,7 +296,7 @@ update that point to the buffer point"
     (async-shell:--register)
     (async-shell:--ansi-color)
     (async-shell:--pin-lineno)
-    ]
+    (async-shell:--edit)]
    ["Exit"
     ("RET" "Quit" transient-quit-one)
     ("q" "Quit" transient-quit-one)]])
@@ -292,14 +306,15 @@ update that point to the buffer point"
   "," #'async-shell-menu
   "R" #'async-shell-rename)
 
-(define-derived-mode async-shell-process-mode special-mode "Async Shell"
+(define-derived-mode async-shell-process-mode fundamental-mode "Async Shell"
   "Major mode for the Async Shell process buffer."
 
   (buffer-disable-undo)
   (setq-local truncate-lines t)
   (add-hook 'after-save-hook #'async-shell-apply-save-hook)
   (when (fboundp 'evil-make-overriding-map)
-    (evil-make-overriding-map async-shell-process-mode-map 'normal)))
+    (evil-make-overriding-map async-shell-process-mode-map 'normal))
+  (setq buffer-read-only t))
 
 (defun async-shell-launch (command &optional default-dir no-ansi-color vars name dont-show-buffer)
   (interactive "MCommand: ")
