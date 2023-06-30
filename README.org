@@ -19,11 +19,11 @@ Re-run on save ()
 You can also create =async-shell= buffers from =org-babel=.
 
 #+begin_src async-shell :name gif :results silent
-ffmpeg -i ~/Desktop/launch-command.mov \
+ffmpeg -y -i ~/Desktop/launch-command.mov \
        -pix_fmt rgb8 -r 10 \
        pictures/launch-command.gif
 
-gifsicle -O3 pictures/launch-command.gif -o pictures/launch-command.gif
+# gifsicle -O3 pictures/launch-command.gif -o pictures/launch-command.gif
 #+end_src
 
 This is useful for keeping track of and executing complex commands that you need to execute for different projects.
