@@ -1,5 +1,44 @@
-#+title: Run Org babel shell commands with async-shell-command
+#+title: async-shell.el - Manage Shell Commands with Buffers
+
+This package allows running a shell command in a buffer and provides conveniences for creating and managing these buffers. This is essentially an alternative to the built in =compile= command.
+
+* Screenshots
+
+Launching a command
+
+[[file:pictures/launch-command.gif][Gif showing =async-launch-command=]]
+
+Re-running (=revert-buffer=)
+
+Pinning a line number (=,p=)
+
+Re-run on save ()
+
+* Org Babel
+
+You can also create =async-shell= buffers from =org-babel=.
+
+#+begin_src async-shell :name gif :results silent
+ffmpeg -i ~/Desktop/launch-command.mov \
+       -pix_fmt rgb8 -r 10 \
+       pictures/launch-command.gif
+
+gifsicle -O3 pictures/launch-command.gif -o pictures/launch-command.gif
+#+end_src
+
+This is useful for keeping track of and executing complex commands that you need to execute for different projects.
 
 Frequently I want to keep track of the commands that I'm running in an org buffer. But the command takes a long time, and so I don't want Emacs to block until the command finishes. I also want to keep an eye on the output. In normal elisp, =(async-shell-command)= is perfect for this.
 
 This package is a very simple plugin that let's you run commands from org-babel in =(async-shell-command)=.
+
+** org-babel configuration
+
+To support =async-shell= blocks, all you need to do is add =(async-shell . t)= to your ='org-babel-load-languages=.
+
+#+begin_src emacs-lisp
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((async-shell . t)
+   ...))
+#+end_src
