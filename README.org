@@ -2,6 +2,8 @@
 
 This package allows running a shell command in a buffer and provides conveniences for creating and managing these buffers. This is essentially an alternative to the built in =compile= command.
 
+(Sorry about the dithering in the screenshots. It's something that Github is doing and I'm not totally sure why.)
+
 * Screenshots
 
 =async-launch-shell= starts a new buffer with a command read from the minibuffer.
