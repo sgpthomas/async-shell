@@ -10,11 +10,11 @@ This package allows running a shell command in a buffer and provides convenience
 
 Once you have an =async-shell= buffer, you can rerun the command by calling =revert-buffer=.
 
- *Pinning a line number* (=,p=): When working on code, I often find it useful to pin the output to a certain line, so that I don't have to scroll and find a particular location every time I rerun a command.
+ *Pinning a line number* (=<async-shell-menu> p=): When working on code, I often find it useful to pin the output to a certain line, so that I don't have to scroll and find a particular location every time I rerun a command.
 
 [[pictures/pin-lineno.gif]]
 
-*Re-run on save* (=,r=): Enabling =Reload on save= will re-run the command in that buffer every time a file is saved. I find this incredibly useful for debugging code.
+*Re-run on save* (=<async-shell-menu> r=): Enabling =Reload on save= will re-run the command in that buffer every time a file is saved. I find this incredibly useful for debugging code.
 
 [[pictures/reload-on-save.gif]]
 
@@ -22,8 +22,25 @@ Once you have an =async-shell= buffer, you can rerun the command by calling =rev
 
 You can also create =async-shell= buffers from =org-babel=.
 
-#+begin_src async-shell :name gif :results silent
+#+begin_src shell :name gif :results silent
 ,#+begin_src async-shell :name gif :results silent
+name="babel"
+ffmpeg -y -i ~/Desktop/$name.mov \
+       -pix_fmt rgb24 -r 10 \
+       pictures/$name.gif
+
+gifsicle -O3 pictures/$name.gif -o pictures/$name.gif
+,#+end_src
+#+end_src
+
+[[pictures/babel.gif]]
+
+This is useful for keeping track of and executing complex commands that you need to execute for different projects. Many of my projects contain an org-file where I can write down different commands I execute on a regular basis and add documentation explaining what they do. This means that I never have to search back through my command history to find a particular command, and makes editing commands trivial.
+
+Additionally, =async-shell= babel blocks support specifying tramp directories. If I wanted to run the above command on some server, I could write:
+
+#+begin_src shell
+,#+begin_src async-shell :name gif :results silent :dir /ssh:sgpthomas@my.server.com:some/path
 name="reload-on-save"
 ffmpeg -y -i ~/Desktop/$name.mov \
        -pix_fmt rgb8 -r 10 \
@@ -33,11 +50,6 @@ gifsicle -O3 pictures/$name.gif -o pictures/$name.gif
 ,#+end_src
 #+end_src
 
-This is useful for keeping track of and executing complex commands that you need to execute for different projects.
-
-Frequently I want to keep track of the commands that I'm running in an org buffer. But the command takes a long time, and so I don't want Emacs to block until the command finishes. I also want to keep an eye on the output. In normal elisp, =(async-shell-command)= is perfect for this.
-
-This package is a very simple plugin that let's you run commands from org-babel in =(async-shell-command)=.
 
 ** org-babel configuration
 
