@@ -216,6 +216,15 @@ update that point to the buffer point"
         (setq-local async-shell-command new-command)
         (revert-buffer)))))
 
+(defun async-shell-change-default-directory ()
+  (interactive)
+
+  (let* ((buf (async-shell-here-or-prompt))
+         (dir (read-directory-name "Working directory: ")))
+    (with-current-buffer (get-buffer buf)
+      (setq-local default-directory dir)
+      (revert-buffer))))
+
 (defun async-shell-kill ()
   (interactive)
 
@@ -277,7 +286,8 @@ update that point to the buffer point"
     ("R" "Rename" async-shell-rename)
     ("c" "Command" async-shell-change-command)
     ("k" "Kill" async-shell-kill
-     :if (lambda () (process-live-p (get-buffer-process (current-buffer)))))]
+     :if (lambda () (process-live-p (get-buffer-process (current-buffer)))))
+    ("d" "Change working directory" async-shell-change-default-directory)]
    ["Toggles"
     (async-shell:--register)
     (async-shell:--ansi-color)
