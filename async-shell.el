@@ -212,7 +212,7 @@ update that point to the buffer point"
 
   (let* ((buf (async-shell-here-or-prompt)))
     (with-current-buffer (get-buffer buf)
-      (let ((new-command (read-string "Command: " async-shell-command)))
+      (let ((new-command (read-string "Command: " async-shell-command 'async-shell-history)))
         (setq-local async-shell-command new-command)
         (revert-buffer)))))
 
@@ -311,8 +311,14 @@ update that point to the buffer point"
   (when (fboundp 'evil-make-overriding-map)
     (evil-make-overriding-map async-shell-process-mode-map 'normal)))
 
+(defvar async-shell-history nil)
+
+(eval-after-load "savehist"
+  '(add-to-list 'savehist-additional-variables 'async-shell-history))
+
 (defun async-shell-launch (command &optional default-dir no-ansi-color vars name dont-show-buffer)
-  (interactive "MCommand: ")
+  (interactive
+   (list (read-string "Command: " nil 'async-shell-history)))
   (let* ((buffer-name (if name (format "*async-shell:%s*" name)
                         (format "*async-shell:%s*" (car (s-split-up-to " " command 1)))))
          (default-dir (if default-dir default-dir default-directory))
@@ -332,11 +338,18 @@ update that point to the buffer point"
                                            (async-shell-start-process shell-buf))))
     (async-shell-start-process shell-buf)
     (when (or new (not dont-show-buffer))
-      (display-buffer shell-buf
-                      '((display-buffer-in-direction)
-                        (direction . right)))
-      ;; (switch-to-buffer-other-window shell-buf)
-      )))
+      (display-buffer shell-buf))))
+
+(defun async-shell-list-buffers ()
+  (interactive)
+
+  (switch-to-buffer
+   (read-buffer "Async Shell: "
+                nil
+                nil
+                (lambda (x)
+                  (eq (buffer-local-value 'major-mode (cdr x))
+                      'async-shell-process-mode)))))
 
 (provide 'async-shell)
 
